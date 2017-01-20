@@ -1,0 +1,67 @@
+#version 420 core
+
+layout(location = 0) out vec4 out_albedo;
+layout(location = 1) out vec4 out_SMR;
+layout(location = 2) out vec4 out_normal;
+
+//ALBEDO//
+uniform sampler2D uTexAlbedo;
+uniform vec3 uUniformAlbedo;
+uniform bool uUseTexAlbedo;
+
+//SPECULAR//
+uniform sampler2D uTexSpecular;
+uniform float uUniformSpecular;
+uniform bool uUseTexSpecular;
+
+//NORMAL//
+uniform sampler2D uTexNormal;
+uniform bool uUseTexNormal;
+
+in DATA
+{
+	mat4 M;
+	mat4 V;
+	mat4 P;
+	mat4 MVP;
+	
+	vec4 FragPos;
+	vec2 UV;
+	
+	vec3 Normal;
+	mat3 TBN;
+} fs_in;
+
+void main()
+{
+	//ALBEDO//
+	if(uUseTexAlbedo)
+	{
+		out_albedo = texture(uTexAlbedo, fs_in.UV).rgba;
+	}
+	else
+	{
+		out_albedo = vec4(uUniformAlbedo.xyz, 1.0f);
+	}
+	
+	//SPECULAR//
+	if(uUseTexSpecular)
+	{
+		float specular = texture(uTexSpecular, fs_in.UV).r;
+		out_SMR.r = specular;
+	}
+	else
+	{
+		out_SMR.r = uUniformSpecular;
+	}
+	
+	//NORMAL//
+	if(uUseTexNormal)
+	{
+		out_normal = vec4(normalize(fs_in.TBN * ((texture(uTexNormal, fs_in.UV.xy).rgb) * 2 - 1)), 1.0f);
+	}
+	else
+	{
+		out_normal = vec4(fs_in.Normal.xyz, 1.0f);
+	}
+}

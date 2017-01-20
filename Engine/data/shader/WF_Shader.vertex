@@ -1,0 +1,23 @@
+#version 420 core
+
+//Layout
+layout(location = 0) in vec3 iVertexPosition;
+layout(location = 1) in vec2 iUV;
+layout(location = 2) in vec3 iNormal;
+
+//Uniform
+uniform mat4 uModel;
+
+layout(std140, binding = 0) uniform shader_data
+{
+	vec3 uViewPos;
+	mat4 uView;
+	mat4 uProjection;
+};
+
+void main()
+{
+	mat4 MVP = uProjection * uView * uModel;
+	
+	gl_Position = MVP * vec4(iVertexPosition, 1.0f);
+}

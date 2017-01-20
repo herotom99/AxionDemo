@@ -1,0 +1,11 @@
+#version 420 core
+
+//Informations
+uniform vec4 uColor;
+
+out vec4 out_color;
+
+void main()
+{
+	out_color = uColor;
+}

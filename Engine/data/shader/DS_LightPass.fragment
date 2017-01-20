@@ -1,0 +1,185 @@
+#version 420 core
+
+layout(location = 0) out vec4 out_color; //FinalTexture
+
+////////////////GBUFFER DATA////////////////////
+uniform vec2 uGBufferSize;
+
+uniform sampler2D uAlbedoTex;
+uniform sampler2D uSMRTex;
+uniform sampler2D uNormalTex;
+uniform sampler2D uDepthTex;
+
+/////////////////LIGHT DATA////////////////////
+const int POINT_LIGHT = 0;
+const int SPOT_LIGHT = 1;
+const int DIRECTIONAL_LIGHT = 2;
+
+struct LIGHT
+{
+	vec3 pos;
+	vec3 direction;
+	
+	vec3 color;
+	float intensity;
+	
+	float attenuation_const;
+	float attenuation_lin;
+	float attenuation_exp;
+};
+uniform LIGHT uLight;
+
+uniform int LIGHT_TYPE;
+
+////////////////UNIFORM////////////////////
+
+layout(std140, binding = 0) uniform shader_data
+{
+	vec3 uViewPos;
+	mat4 uViewMatrix;
+	mat4 uProjectionMatrix;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+vec2 CalcTexCoord()
+{
+	return gl_FragCoord.xy / uGBufferSize.xy;
+}
+
+vec3 CalcPosition(vec2 TexCoord, float Depth)
+{
+	vec4 pos;
+	pos.xy = TexCoord * 2.0f - 1.0f;
+	pos.z = Depth;
+	pos.w = 1.0f;
+	
+	mat4 matrix = inverse(uProjectionMatrix);
+	pos = matrix * pos;
+	pos /= pos.w;
+	
+	return pos.xyz;
+}
+
+void main()
+{
+	out_color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+	/////////////////////////////////////////////////////////////////////////
+	vec2 TexCoord = CalcTexCoord();
+	
+	vec3 Albedo = texture(uAlbedoTex, TexCoord).rgb;
+	float Specular = texture(uSMRTex, TexCoord).r;
+	float Metallic = texture(uSMRTex, TexCoord).g;
+	float Roughness = texture(uSMRTex, TexCoord).b;
+	
+	vec3 Normal = vec3(uViewMatrix * vec4(texture(uNormalTex, TexCoord).rgb, 0.0f));
+	float Depth = texture(uDepthTex, TexCoord).r * 2.0f - 1.0f;
+	vec3 Position = CalcPosition(TexCoord, Depth);
+	/////////////////////////////////////////////////////////////////////////
+	
+	if(LIGHT_TYPE == POINT_LIGHT)
+	{
+		vec4 lighting = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	
+		vec3 LighPos = vec3(uViewMatrix * vec4(uLight.pos, 1.0f));
+		float Distance = distance(LighPos, Position);
+		vec3 LightToSurface = normalize(LighPos - Position);
+		vec3 SurfaceToCamera = normalize(vec3(0.0f, 0.0f, 0.0f) - Position);
+		vec3 LightDir = LightToSurface / (Distance * Distance);
+		
+		//Ambient//
+		float ambientCoefficient = 0.06;
+		vec3 ambient = ambientCoefficient * Albedo * uLight.color;
+		
+		//Diffuse//
+		float diffuseCoefficient = max(dot(Normal, LightDir), 0.0f);
+		vec3 diffuse = diffuseCoefficient * Albedo * uLight.color;
+		
+		//Specular//
+		float shininess = 1000.0f;
+		vec3 specularColor = vec3(1.0f, 1.0f, 1.0f);
+		
+		float specular = 0.0;
+		if(diffuseCoefficient > 0.0)
+		specular = pow(max(0.0, dot(SurfaceToCamera, reflect(-LightToSurface, Normal))), 4.0f);
+		
+		vec3 specularT = specular * specularColor * uLight.color;
+		
+		//Add Light//
+		lighting += vec4(ambient, 1.0f);
+		lighting += vec4(diffuse, 1.0f);
+		lighting += vec4(specularT, 1.0f);
+		
+		out_color += lighting;
+	}
+	else if(LIGHT_TYPE == SPOT_LIGHT)
+	{
+		
+	}
+	else if(LIGHT_TYPE == DIRECTIONAL_LIGHT)
+	{
+		vec4 lighting = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		
+		vec3 direction = normalize(vec3(uViewMatrix * vec4(uLight.direction, 0.0f)));
+		vec3 SurfaceToCamera = normalize(vec3(0.0f, 0.0f, 0.0f) - Position);
+		vec3 reflectDir = reflect(-direction, Normal);
+		
+		//Ambient//
+		float ambientCoefficient = 0.015f;
+		vec3 ambient = ambientCoefficient * Albedo * uLight.color;
+		
+		//Diffuse//
+		float diffuseCoefficient = max(dot(Normal, direction), 0.0f);
+		vec3 diffuse = diffuseCoefficient * Albedo * uLight.color;
+		
+		//Specular//
+		float LightStrength = 0.5f;
+		float shininess = 100.0f;
+		vec3 specularColor = vec3(1.0f, 1.0f, 1.0f);
+		
+		float specularCoefficient = 0.0;
+		if(diffuseCoefficient > 0.0)
+		{
+			float specAngle = max(dot(reflectDir, SurfaceToCamera), 0.0f);
+			specularCoefficient = pow(specAngle, shininess) * LightStrength;
+		}
+		
+		
+		vec3 specular = specularCoefficient * uLight.color * specularColor;
+		
+		//Add Light//
+		
+		lighting += vec4(ambient, 1.0f);
+		lighting += vec4(diffuse, 1.0f);
+		lighting += vec4(specular, 1.0f);
+		
+		out_color += lighting;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,15 @@
+#version 420 core
+
+uniform vec3 uColor;
+uniform sampler2D uTex;
+
+in vec2 UV;
+
+out vec4 out_color;
+
+void main()
+{
+	float a = texture2D(uTex, UV).r;
+	
+	out_color = vec4(uColor * a, a);
+}

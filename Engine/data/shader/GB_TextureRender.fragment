@@ -1,0 +1,86 @@
+#version 420 core
+
+in vec2 fUV;
+
+uniform sampler2D uTexture;
+uniform int uTexID;
+
+out vec4 out_color;
+
+///////////////////////////////////
+
+const int ALBEDO = 0;
+const int SPECULAR = 1;
+const int METALLIC = 2;
+const int ROUGHNESS = 3;
+const int NORMAL = 4;
+const int POSITION = 5;
+const int DEPTH = 6;
+
+vec4 DrawAlbedo(sampler2D texture, vec2 UV)
+{
+	return texture2D(texture, UV);
+}
+vec4 DrawSpecular(sampler2D texture, vec2 UV)
+{
+	float r = texture2D(texture, UV).r;
+	return vec4(r, r, r, 1.0f);
+}
+vec4 DrawMetallic(sampler2D texture, vec2 UV)
+{
+	float g = texture2D(texture, UV).g;
+	return vec4(g, g, g, 1.0f);
+}
+vec4 DrawRoughness(sampler2D texture, vec2 UV)
+{
+	float b = texture2D(texture, UV).b;
+	return vec4(b, b, b, 1.0f);
+}
+vec4 DrawNormal(sampler2D texture, vec2 UV)
+{
+	vec4 pixel = texture2D(texture, UV);
+	
+	if(pixel.x != 0.0f || pixel.y != 0.0f || pixel.z != 0.0f)
+	{
+		return pixel / 2.0f + 0.3f;
+	}
+	else
+	{
+		return vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	}
+}
+vec4 DrawPosition(sampler2D texture, vec2 UV)
+{
+	float n = 0.01f; //NearCamera
+	float f = 500.0f; //FarCamera
+	
+	float z = texture2D(texture, UV).x;
+	
+	float Depth = (2.0 * n) / (f + n - z * (f - n));
+	vec2 Pos = UV * 2.0f - 1.0f;
+	
+	return vec4(UV.x , UV.y, Depth, 1.0f);
+}
+vec4 DrawDepth(sampler2D texture, vec2 UV)
+{
+	float n = 0.01f; //NearCamera
+	float f = 500.0f; //FarCamera
+	
+	float z = texture2D(texture, UV).x;
+	
+	float c = (2.0 * n) / (f + n - z * (f - n));
+	
+	return vec4(c, c, c, 1.0f);
+}
+
+void main()
+{
+	if(uTexID == ALBEDO){out_color = DrawAlbedo(uTexture, fUV);}
+	else if(uTexID == SPECULAR){out_color = DrawSpecular(uTexture, fUV);}
+	else if(uTexID == METALLIC){out_color = DrawMetallic(uTexture, fUV);}
+	else if(uTexID == ROUGHNESS){out_color = DrawRoughness(uTexture, fUV);}
+	else if(uTexID == NORMAL){out_color = DrawNormal(uTexture, fUV);}
+	else if(uTexID == POSITION){out_color = DrawPosition(uTexture, fUV);}
+	else if(uTexID == DEPTH){out_color = DrawDepth(uTexture, fUV);}
+	else out_color = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+}

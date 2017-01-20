@@ -1,0 +1,60 @@
+#version 420 core
+
+//Mesh Data
+layout(location = 0) in vec3 iVertexPosition;
+layout(location = 1) in vec2 iUV;
+layout(location = 2) in vec3 iNormal;
+layout(location = 3) in vec3 iTangent;
+layout(location = 4) in vec3 iBitangent;
+
+//Uniform
+uniform mat4 uModel;
+
+layout(std140, binding = 0) uniform shader_data
+{
+	vec3 uViewPos;
+	mat4 uViewMatrix;
+	mat4 uProjection;
+};
+
+out DATA
+{
+	mat4 M;
+	mat4 V;
+	mat4 P;
+	mat4 MVP;
+	
+	vec4 FragPos;
+	vec2 UV;
+	
+	vec3 Normal;
+	mat3 TBN;
+} vs_out;
+
+void main()
+{
+	//Matrix
+	mat4 MVP = uProjection * uViewMatrix * uModel;
+	vs_out.MVP = MVP;
+	vs_out.M = uModel;
+	vs_out.V = uViewMatrix;
+	vs_out.P = uProjection;
+	
+	//FragPos
+	vs_out.FragPos = uViewMatrix * uModel * vec4(iVertexPosition, 1.0f);
+	
+	//UV
+	vs_out.UV = iUV;
+	
+	//Normal
+	vs_out.Normal = normalize(vec3(uModel * vec4(iNormal, 0.0f)));
+	
+	//TBN
+	vec3 N = normalize(uModel * vec4(iNormal, 0.0f)).xyz;
+	vec3 T = normalize(uModel * vec4(iTangent, 0.0f)).xyz;
+	vec3 B = normalize(uModel * vec4(iBitangent, 0.0f)).xyz;
+	vs_out.TBN = mat3(T, B, N);
+	
+	//Set Position of the vertex
+	gl_Position = MVP * vec4(iVertexPosition, 1.0f);
+}

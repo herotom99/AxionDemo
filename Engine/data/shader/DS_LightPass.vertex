@@ -1,0 +1,34 @@
+#version 420 core
+
+layout(location = 0) in vec3 iVertexPosition;
+
+//LIGHT TYPE//
+const int POINT_LIGHT = 0;
+const int SPOT_LIGHT = 1;
+const int DIRECTIONAL_LIGHT = 2;
+
+uniform int LIGHT_TYPE;
+
+//Uniform
+uniform mat4 uModel;
+
+layout(std140, binding = 0) uniform shader_data
+{
+	vec3 uViewPos;
+	mat4 uViewMatrix;
+	mat4 uProjectionMatrix;
+};
+
+void main()
+{
+	if(LIGHT_TYPE != DIRECTIONAL_LIGHT)
+	{
+		mat4 MVP = uProjectionMatrix * uViewMatrix * uModel;
+	
+		gl_Position = MVP * vec4(iVertexPosition, 1.0f);
+	}
+	else
+	{
+		gl_Position = vec4(iVertexPosition, 1.0f);
+	}
+}
